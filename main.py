@@ -1,7 +1,9 @@
+import sklearn
 import numpy as np
-import scikit
 import matplotlib
 import scipy
+import pandas as pd
+
 # This is a sample Python script.
 
 # Press Mayús+F10 to execute it or replace it with your code.
