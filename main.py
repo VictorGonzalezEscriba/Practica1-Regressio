@@ -4,19 +4,31 @@ import matplotlib
 import scipy
 import pandas as pd
 
-# This is a sample Python script.
+from sklearn.datasets import make_regression
+from matplotlib import pyplot as plt
+import scipy.stats
 
-# Press Mayús+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+# Visualitzarem només 3 decimals per mostra
+pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
+# Funcio per a llegir dades en format csv
+def load_dataset(path):
+    dataset = pd.read_csv(path, header=0, delimiter=',')
+    return dataset
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+# Carreguem dataset d'exemple
+dataset = load_dataset('COMBO17.csv')
+data = dataset.values
 
+x = data[:, :2]
+y = data[:, 2]
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+print("Dimensionalitat de la BBDD:", dataset.shape)
+print("Dimensionalitat de les entrades X", x.shape)
+print("Dimensionalitat de l'atribut Y", y.shape)
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+print("Per comptar el nombre de valors no existents:")
+print(dataset.isnull().sum())
+
+print("Per visualitzar les primeres 5 mostres de la BBDD:")
+print(dataset.head())
