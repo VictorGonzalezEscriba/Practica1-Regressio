@@ -1,0 +1,17 @@
+Cargamos el csv con pandas y vemos las dimensiones de la bbdd,
+vemos que se trata de una bbdd de 3462 filas y 65 columnas.
+
+Data Cleaning:
+Despues comprobamos cuantos valores vacios hay en los datos, vemos que hay 50
+VnMag 1, e.VbMAG 1, S280MAG 24, e.S280MA 24
+
+Rellenamos los valores vacios con la mitjana (mean) en dichas columnas:
+
+
+1. Quin és el tipus de cada atribut?
+Tots el atributs són de tipus float64, es a dir, nombres decimals.
+
+2. Quins atributs tenen una distribució Gaussiana?
+
+
+3. Quin és l'atribut objectiu? Per què?
