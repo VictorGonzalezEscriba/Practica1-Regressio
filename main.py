@@ -1,15 +1,11 @@
 import sklearn
 import numpy as np
-import matplotlib
-import scipy
 import pandas as pd
-from scipy.stats import norm
-from scipy.stats import shapiro
+import scipy.stats
 from sklearn.datasets import make_regression
 from matplotlib import pyplot as plt
-import scipy.stats
-
-# Apartat (C): Analitzant Dades
+from scipy.stats import shapiro
+#%matplotlib notebook
 
 # Visualitzarem només 3 decimals per mostra
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
@@ -30,42 +26,60 @@ print("Dimensionalitat de les entrades X:", x.shape)
 print("Dimensionalitat de l'atribut Y:", y.shape)
 
 
-print("Per comptar el nombre de valors no existents:")
-print(dataset.isnull().sum().sum())
-# Para ver todas las columnas con valores vacios
-
+# Per veure totes les columnes amb valors inexistents
 x = dataset.isnull().sum()
 null_columns = dataset.columns[dataset.isnull().any()]
 print(null_columns)
 print(dataset[null_columns].isnull().sum())
+print("Total de valors no existents:",dataset.isnull().sum().sum())
+# Tipus de cada atribut:
+print(dataset.dtypes)
 
-# VnMag 1, e.VbMAG 1, S280MAG 24, e.S280MA 24
+# Creamos una lista para seleccionar los nombres de columnas que queremos dropear
+dataTypeDict = dict(dataset.dtypes)
+lst = []
+for x in dataTypeDict:
+    lst.append(x)
 
+# Drop de la columna 1 que contiene el indice
+dataset = dataset.drop(columns='Nr')
 
-null_columns = dataset.columns[dataset.isnull().any()]
+# Quitamos las columnas entre la 56 y la 65 al ser valores redundantes de las 13 anteriores
+listt = lst[-10:]
 
-for e in null_columns:
-    mean_value = dataset[e].mean()
-    dataset[e].fillna(value = mean_value, inplace=True)
+# Quitamos mumax y ApDRmag
+listt.append('mumax')
+listt.append('ApDRmag')
 
-x = dataset.isnull().sum()
-null_columns = dataset.columns[dataset.isnull().any()]
-print(null_columns)
-print(dataset[null_columns].isnull().sum())
+# Eliminem valors inexistents
+dataset = dataset.dropna()
 
-print(dataset.isnull().sum().sum())
+# Drop de las columnas que den info acerca de los errores
+for x in lst:
+    if "e." in x:
+        listt.append(x)
+dataset = dataset.drop(columns=listt)
+# print(dataset)
+print("Total de valors no existents:", dataset.isnull().sum().sum())
 
+# Apliquem el test de Shapiro
+columns = dataset.columns
+for column in columns:
+    normal, value = (shapiro(dataset[column]))
+    rounded_value = round(value, 5)
+    if rounded_value > 0.05:
+        print('Probably Gaussian')
+    else:
+        print("Probably not Gaussian")
+# No tenim cap columna del dataset que seguieixi una distribució Gaussiana
 
-ee = dataset.columns
+import seaborn as sns
 
-print(type(ee))
-print(shapiro(dataset[ee[0]]))
-dataset.dropna()
-dataset.drop(columns='Nr')
-print(dataset.isnull().sum().sum())
+# Mirem la correlació entre els atributs d'entrada per entendre millor les dades
+correlacio = dataset.corr()
 
-
-i = 0
-while i < ee.size:
-    normal = (shapiro(dataset[ee[i]]))
-    i += 1
+plt.figure()
+# Para verlo más grande
+plt.figure(figsize=(16, 5))
+ax = sns.heatmap(correlacio, annot=True, linewidths=.5)
+pd.plotting.scatter_matrix(dataset, alpha=0.2)
