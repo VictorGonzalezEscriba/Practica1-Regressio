@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib
 import scipy
 import pandas as pd
+from scipy.stats import norm
+from scipy.stats import shapiro
 from sklearn.datasets import make_regression
 from matplotlib import pyplot as plt
 import scipy.stats
@@ -52,3 +54,18 @@ print(null_columns)
 print(dataset[null_columns].isnull().sum())
 
 print(dataset.isnull().sum().sum())
+
+
+ee = dataset.columns
+
+print(type(ee))
+print(shapiro(dataset[ee[0]]))
+dataset.dropna()
+dataset.drop(columns='Nr')
+print(dataset.isnull().sum().sum())
+
+
+i = 0
+while i < ee.size:
+    normal = (shapiro(dataset[ee[i]]))
+    i += 1
