@@ -77,9 +77,9 @@ for column in columns:
 # Mirem la correlació entre els atributs d'entrada per entendre millor les dades
 correlacio = dataset.corr()
 
-plt.figure()
 plt.figure(figsize=(16, 5))
 ax = sns.heatmap(correlacio, annot=True, linewidths=.5)
+plt.show()
 
 #en el dataset se habla de la correlación entre Rmag y mumax para sacar los tamaños de las galaxias
 #si bien es cierto que nos encontramos que cierto grupo de atributos son muc correlativos
@@ -125,6 +125,17 @@ for column in columnsx:
 
 ### APARTAT (B): PRIMERES REGRESSIONS
 
+# CÁLCULO DEL ERROR CUADRÁTICO
+
+import math
+
+def mean_squeared_error(y1, y2):
+    # comprovem que y1 i y2 tenen la mateixa mida
+    assert(len(y1) == len(y2))
+    mse = np.sum((y1-y2)**2)
+    return mse / len(y1)
+
+
 ### APARTAT (C): EL DESCENS DEL GRADIENT
 class Regressor(object):
     def __init__(self, w0, w1, alpha, lamda): # si cambiamos w0 y w1 a menos hará más iteraciones
@@ -138,7 +149,7 @@ class Regressor(object):
         self.cost = []
         # per indicar quantes iteracions fer
         self.n_iteracions = 0
-        #m son las entradas del dataset = len(hy)
+        # m son las entradas del dataset = len(hy)
 
     def predict(self, x):
         # implementar aqui la funció de prediccio
@@ -146,7 +157,7 @@ class Regressor(object):
         return (self.w1 * x) + self.w0
 
     def __update(self, dy, x):
-        # actualitzar aqui els pesos donada la prediccio (hy) i la y real.
+        # actualitzar aqui els pesos donada la prediccio (dy) i la y real.
         # cojo el dataset y calculo el error
         self.w0 = self.w0 - ((self.alpha/len(dy)) * np.sum(dy))
         m = (self.alpha * self.lamda / len(dy))
@@ -156,28 +167,59 @@ class Regressor(object):
     def train(self, max_iter, x, y):
         # Entrenar durant max_iter iteracions o fins que la millora sigui inferior a epsilon
         # x los datos con los que predecir
-        # y datos target lo q tendria q dar
+        # y datos target lo que tendria que dar
         jw_prev = 10000000
         for i in range(0, max_iter):
             hy = self.predict(x)
             diff_hy = hy - y
-            jw = (1 / (2 * len(diff_hy))) * np.sum(diff_hy ** 2) + (self.lamda * (self.w0 ** 2) + (self.w1 ** 2))
+            jw = (1 / (2 * len(diff_hy))) * np.sum(diff_hy ** 2) + (self.lamda * ((self.w0 ** 2) + (self.w1 ** 2)))
+            self.cost.append(jw) # hacer un plot que sea
             if (np.abs(jw - jw_prev) / jw_prev) < 0.05: # si lo hacemos más pequeño, hace más iteraciones, margen de error / porcentaje de mejora
                 break
             self.__update(diff_hy, x)
             jw_prev = jw
-            print(jw_prev)
         pass
 
+"""
+    r = Regressor(-10, -10, 0.05, 0.05)
+    data = rel_Rmag_mumax.to_numpy()
+    x = data[:, 0]
+    y = data[:, 1]
+    r.train(100, x, y)
+"""
 
-r = Regressor(-10, -10, 0.05, 0.05)
-data = rel_Rmag_mumax.to_numpy()
-x = data[:, 0]
-y = data[:, 1]
-r.train(100, x, y)
 
 """
 antes alpha y lamba nos hacia avanzar muy lento (0,05 ambos), solo hacia una iteración
 
 
 """
+
+from sklearn.model_selection import train_test_split
+
+### No hará falta volverlas a dividir borrar luego ###
+ds = rel_Rmag_mumax
+x = ds[["Rmag"]].to_numpy()
+y = ds[["mumax"]].to_numpy()
+# split into training, validation, and testing sets.
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.33)
+
+alphas = [0.01, 0.02, 0.03, 0.04, 0.05]
+lambdas = [0.01, 0.02, 0.03, 0.04, 0.05]
+resultats = []
+
+for a in alphas:
+    array_aux = []
+    for lam in lambdas:
+        regr = Regressor(-10, -10, a, lam)
+        regr.train(100, x_train, y_train)
+        aux = regr.predict(x_test)
+        array_aux.append(mean_squeared_error(aux, y_test))
+        #print("alpha: "+str(a)+", lambda: "+str(lam)+", mse: " + str(mean_squeared_error(aux, y_test)))
+    resultats.append(array_aux)
+    print(array_aux)
+
+# el regresor funciona mejor cuando lamba es 0.03. Vuelven a subir porque lamba es peor en ese caso.
+# vemos que las mejores son con lamba 0.03 y escogemos o alpha 0.04 o 0.05 -> hacer cross validation para comprobar que
+# el resultado funciona siempre y no sea coincidencia
+
