@@ -124,3 +124,60 @@ for column in columnsx:
 
 
 ### APARTAT (B): PRIMERES REGRESSIONS
+
+### APARTAT (C): EL DESCENS DEL GRADIENT
+class Regressor(object):
+    def __init__(self, w0, w1, alpha, lamda): # si cambiamos w0 y w1 a menos hará más iteraciones
+        # Inicialitzem w0 i w1 (per ser ampliat amb altres w's)
+        self.w0 = w0
+        self.w1 = w1
+        self.alpha = alpha
+        # added
+        self.lamda = lamda
+        # guardem jw per fer gràfiques
+        self.cost = []
+        # per indicar quantes iteracions fer
+        self.n_iteracions = 0
+        #m son las entradas del dataset = len(hy)
+
+    def predict(self, x):
+        # implementar aqui la funció de prediccio
+        # f(x) = w1x + w0 -> retorna un vector amb totes les posiciones
+        return (self.w1 * x) + self.w0
+
+    def __update(self, dy, x):
+        # actualitzar aqui els pesos donada la prediccio (hy) i la y real.
+        # cojo el dataset y calculo el error
+        self.w0 = self.w0 - ((self.alpha/len(dy)) * np.sum(dy))
+        m = (self.alpha * self.lamda / len(dy))
+        self.w1 = self.w1 * (1 - m) - m * np.sum(dy * x)
+        pass
+
+    def train(self, max_iter, x, y):
+        # Entrenar durant max_iter iteracions o fins que la millora sigui inferior a epsilon
+        # x los datos con los que predecir
+        # y datos target lo q tendria q dar
+        jw_prev = 10000000
+        for i in range(0, max_iter):
+            hy = self.predict(x)
+            diff_hy = hy - y
+            jw = (1 / (2 * len(diff_hy))) * np.sum(diff_hy ** 2) + (self.lamda * (self.w0 ** 2) + (self.w1 ** 2))
+            if (np.abs(jw - jw_prev) / jw_prev) < 0.05: # si lo hacemos más pequeño, hace más iteraciones, margen de error / porcentaje de mejora
+                break
+            self.__update(diff_hy, x)
+            jw_prev = jw
+            print(jw_prev)
+        pass
+
+
+r = Regressor(-10, -10, 0.05, 0.05)
+data = rel_Rmag_mumax.to_numpy()
+x = data[:, 0]
+y = data[:, 1]
+r.train(100, x, y)
+
+"""
+antes alpha y lamba nos hacia avanzar muy lento (0,05 ambos), solo hacia una iteración
+
+
+"""
