@@ -3,7 +3,10 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from scipy.stats import shapiro
 import seaborn as sns
-
+import math
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.linear_model import LinearRegression
+import time
 __author__ = "1528873, 1525184, 1527280"
 
 
@@ -38,6 +41,12 @@ print("Total de valors no existents:",dataset.isnull().sum().sum())
 # Tipus de cada atribut:
 print(dataset.dtypes)
 
+# Ajustem el dataset a recomonacions vistes a la documentació de Kaggle
+dataset = dataset.rename(columns={"e.Mcz": "eMcz"})
+dataset = dataset.drop(dataset[dataset.chi2red > 5].index)
+dataset = dataset.drop(dataset[dataset.eMcz > 0.2].index)
+dataset = dataset.drop(dataset[dataset.ApDRmag < 0].index)
+
 # Creem una llista per seleccionar els nombres de columnes que volem eliminar
 dataTypeDict = dict(dataset.dtypes)
 lst = []
@@ -55,7 +64,7 @@ dataset = dataset.dropna()
 
 # Drop de las columnes que donen informació sobre els errors.
 for x in lst:
-    if "e." in x:
+    if "e" in x:
         lst2.append(x)
 dataset = dataset.drop(columns=lst2)
 print("Total de valors no existents:", dataset.isnull().sum().sum())
@@ -103,16 +112,43 @@ plt.show()
 
 # CÁLCULO DEL ERROR CUADRÁTICO
 
-import math
-
-def mean_squeared_error(y1, y2):
+def mean_squared_error(y1, y2):
     # comprovem que y1 i y2 tenen la mateixa mida
     assert(len(y1) == len(y2))
     mse = np.sum((y1-y2)**2)
     return mse / len(y1)
 
+def regression(x, y):
+    # Creem un objecte de regressió de sklearn
+    regr = LinearRegression()
+    # Entrenem el model per a predir y a partir de x
+    regr.fit(x, y)
+    # Retornem el model entrenat
+    return regr
 
-### APARTAT (C): EL DESCENS DEL GRADIENT
+def predict_with_train(x, y, test_size):
+
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.33)
+
+    model = regression(x_train, y_train)
+    y_hat = model.predict(x_test)
+
+    # Mostramos el resultado
+    plt.figure()
+    plt.plot(x_train, y_train, '-o', alpha = 0.25)
+    plt.plot(x_test, y_hat, 'r', alpha = 0.25)
+    plt.xlabel('mumax')
+    plt.ylabel('')
+
+    print ("MSE:", mean_squared_error(y_hat, y_test))
+
+# Per veure quins atributs tenen un menor MSE
+x = dataset[["Rmag"]]
+y = dataset[["mumax"]]
+print(predict_with_train(x, y, test_size=0.33))
+
+"""
+### APARTAT (A): EL DESCENS DEL GRADIENT
 class Regressor(object):
     def __init__(self, w0, w1, alpha, lamda): # si cambiamos w0 y w1 a menos hará más iteraciones
         # Inicialitzem w0 i w1 (per ser ampliat amb altres w's)
@@ -129,7 +165,7 @@ class Regressor(object):
 
     def predict(self, x):
         # implementar aqui la funció de prediccio
-        print((self.w1 * x) + self.w0)
+        # print((self.w1 * x) + self.w0)
         return (self.w1 * x) + self.w0
 
     def __update(self, dy, x):
@@ -149,26 +185,10 @@ class Regressor(object):
             self.cost.append(jw)
             if (np.abs(jw - jw_prev) / jw_prev) < 0.05:
                 break
+            self.n_iteracions += 1
             self.__update(diff_hy, x)
             jw_prev = jw
 
-
-"""
-    r = Regressor(-10, -10, 0.05, 0.05)
-    data = rel_Rmag_mumax.to_numpy()
-    x = data[:, 0]
-    y = data[:, 1]
-    r.train(100, x, y)
-"""
-
-
-"""
-antes alpha y lamba nos hacia avanzar muy lento (0,05 ambos), solo hacia una iteración
-
-
-"""
-
-from sklearn.model_selection import train_test_split, cross_val_score
 
 ### No hará falta volverlas a dividir borrar luego ###
 ds = rel_Rmag_mumax
@@ -188,8 +208,8 @@ for a in alphas:
         regr = Regressor(-10, -10, a, lam)
         regr.train(100, x_train, y_train)
         aux = regr.predict(x_test)
-        array_aux.append(mean_squeared_error(aux, y_test))
-        # print("alpha: "+str(a)+", lambda: "+str(lam)+", mse: " + str(mean_squeared_error(aux, y_test)))
+        array_aux.append(mean_squared_error(aux, y_test))
+        # print("alpha: "+str(a)+", lambda: "+str(lam)+", mse: " + str(mean_squared_error(aux, y_test)))
     resultats.append(array_aux)
     print(array_aux)
 
@@ -202,20 +222,34 @@ scores = []
 for train_index, test_index in kf.split(x):
     x_train, x_test = x[train_index], x[test_index]
     y_train, y_test = y[train_index], y[test_index]
-    model = Regressor(-10, -10, 0.04, 0.03)
+    model = Regressor(-10, -10, 0.03, 0.03)
     model.train(100, x_train, y_train)
-    scores.append(mean_squeared_error(y_test, model.predict(x_test)))
+    scores.append(mean_squared_error(y_test, model.predict(x_test)))
 
 print("Scores: ", scores)
 print("Mean:", np.mean(scores))
 
 # Gràfica de la evolució del cost del regressor en avançar el nombre de iteracions (8)
-reg34 = Regressor(-10, -10, 0.04, 0.03)
+start = time.time()
+reg34 = Regressor(-10, -10, 0.03, 0.03)
 reg34.train(100, x_train, y_train)
+end = time.time()
+dif = end - start
+print("Temps nostre regressor: ", dif)
 plot_cost = plt.figure()
-xax = [i for i in range(0, 8)]
+xax = [i for i in range(0, 10)]
 plt.plot(xax, reg34.cost, color='#d2705b')
 plt.title('Evolució del cost')
 plt.xlabel("Nombre d'iteracions")
 plt.ylabel("Cost")
 plt.show()
+
+# Comparació entre el nostre regressor i el de la llibreria
+start = time.time()
+reg = LinearRegression()
+reg.fit(x_train, y_train)
+pred = reg.predict(x_test)
+end = time.time()
+dif = end - start
+print("Score llibreria: ", mean_squared_error(pred, y_test), "Temps regressor llibreria: ", dif)
+"""
