@@ -154,6 +154,7 @@ class Regressor(object):
     def predict(self, x):
         # implementar aqui la funció de prediccio
         # f(x) = w1x + w0 -> retorna un vector amb totes les posiciones
+        #print((self.w1 * x) + self.w0)
         return (self.w1 * x) + self.w0
 
     def __update(self, dy, x):
@@ -162,7 +163,7 @@ class Regressor(object):
         self.w0 = self.w0 - ((self.alpha/len(dy)) * np.sum(dy))
         m = (self.alpha * self.lamda / len(dy))
         self.w1 = self.w1 * (1 - m) - m * np.sum(dy * x)
-        pass
+
 
     def train(self, max_iter, x, y):
         # Entrenar durant max_iter iteracions o fins que la millora sigui inferior a epsilon
@@ -178,7 +179,7 @@ class Regressor(object):
                 break
             self.__update(diff_hy, x)
             jw_prev = jw
-        pass
+
 
 """
     r = Regressor(-10, -10, 0.05, 0.05)
@@ -195,7 +196,7 @@ antes alpha y lamba nos hacia avanzar muy lento (0,05 ambos), solo hacia una ite
 
 """
 
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 
 ### No hará falta volverlas a dividir borrar luego ###
 ds = rel_Rmag_mumax
@@ -208,6 +209,7 @@ alphas = [0.01, 0.02, 0.03, 0.04, 0.05]
 lambdas = [0.01, 0.02, 0.03, 0.04, 0.05]
 resultats = []
 
+# Busquem les millors alphes i lambdes
 for a in alphas:
     array_aux = []
     for lam in lambdas:
@@ -222,4 +224,35 @@ for a in alphas:
 # el regresor funciona mejor cuando lamba es 0.03. Vuelven a subir porque lamba es peor en ese caso.
 # vemos que las mejores son con lamba 0.03 y escogemos o alpha 0.04 o 0.05 -> hacer cross validation para comprobar que
 # el resultado funciona siempre y no sea coincidencia
+
+# hacemos k-fold cross_validation para comprobar que no sea coincidencia
+
+
+# Gràfica de la evolución del coste del regressor en avanzar el numero de iteracions (8)
+reg34 = Regressor(-10, -10, 0.04, 0.03)
+reg34.train(100, x_train, y_train)
+plot_cost = plt.figure()
+xax = [i for i in range(0, 8)]
+plt.plot(xax, reg34.cost, color='#d2705b')
+plt.show()
+
+# Fem cross validation
+from sklearn.model_selection import KFold
+kf = KFold(n_splits=5, random_state=1, shuffle=True)
+scores = []
+for train_index, test_index in kf.split(x):
+    x_train, x_test = x[train_index], x[test_index]
+    y_train, y_test = y[train_index], y[test_index]
+    model = Regressor(-10, -10, 0.04, 0.03)
+    model.train(100, x_train, y_train)
+    scores.append(mean_squeared_error(y_test, model.predict(x_test) ))
+
+print("Scores: ", scores)
+print("Mean:", np.mean(scores))
+
+# El cross validation me dice si funciona bien auqnue cualquier dataset de train y test. Vemos que los resultados son
+# consistentes, porque se mantienen igual que en el test de las mejores alphas y lambdas
+# el valor es el mse, el regressor me dice el valor de la prediccion y en el mse lo comparo con el test.
+# Por cada prediccion me equivoco minerror = raiz(0.175) = 0,42 aproximadamente, se equivoca en un 2,17%.
+#
 
