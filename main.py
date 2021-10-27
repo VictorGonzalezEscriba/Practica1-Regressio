@@ -4,8 +4,15 @@ from matplotlib import pyplot as plt
 from scipy.stats import shapiro
 import seaborn as sns
 import math
+from sklearn import metrics
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import r2_score
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn import linear_model
+from sklearn.pipeline import make_pipeline
+
 import time
 __author__ = "1528873, 1525184, 1527280"
 
@@ -126,28 +133,159 @@ def regression(x, y):
     # Retornem el model entrenat
     return regr
 
-def predict_with_train(x, y, test_size):
+def predict_with_train(x, y, test_size, plot_text_x, plot_text_y):
 
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.33)
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=test_size)
 
     model = regression(x_train, y_train)
     y_hat = model.predict(x_test)
 
-    # Mostramos el resultado
+    # Mostrem el resultat
     plt.figure()
     plt.plot(x_train, y_train, '-o', alpha = 0.25)
     plt.plot(x_test, y_hat, 'r', alpha = 0.25)
-    plt.xlabel('mumax')
-    plt.ylabel('')
+    plt.xlabel(plot_text_y)
+    plt.ylabel(plot_text_x)
 
     print ("MSE:", mean_squared_error(y_hat, y_test))
+
+test_size = 0.33
 
 # Per veure quins atributs tenen un menor MSE
 x = dataset[["Rmag"]]
 y = dataset[["mumax"]]
-print(predict_with_train(x, y, test_size=0.33))
+predict_with_train(x, y, test_size, "Rmag", "mumax")
 
-"""
+#Regressió lineal simple
+
+y = dataset[["mumax"]]
+x = dataset[["Rmag"]]
+predict_with_train(x, y, test_size, "Rmag", "mumax")
+
+x = dataset[["ApDRmag"]]
+predict_with_train(x, y, test_size, "ApDRmag", "mumax")
+
+#Regressió lineal multivariable
+
+x = dataset[["Rmag", "ApDRmag"]]
+y = dataset[["mumax"]]
+
+x_t = x
+y_t = y
+
+x_train, x_test, y_train, y_test = train_test_split(x_t, y_t, test_size=test_size)
+
+model = regression(x_train, y_train)
+y_hat = model.predict(x_test)
+
+# Mostramos el resultado. Plot 1: Rmag
+plt.figure()
+plt.plot(x_train["Rmag"], y_train,'-o', alpha = 0.25)
+plt.plot(x_test["Rmag"], y_hat, 'r', alpha = 0.25)
+plt.xlabel('mumax')
+plt.ylabel('Rmag')
+
+# Mostramos el resultado. Plot 2: ApDRmag
+plt.figure()
+plt.plot(x_train["ApDRmag"], y_train,'-o', alpha = 0.25)
+plt.plot(x_test["ApDRmag"], y_hat, 'r', alpha = 0.25)
+plt.xlabel('mumax')
+plt.ylabel('ApDRmag')
+
+model = regression(x_t, y_t)
+y_hat = model.predict(x_test)
+
+# Mostramos el resultado
+plt.figure()
+plt.plot(x_t, y_t,'-o', alpha = 0.25)
+plt.plot(x_test, y_hat, 'r', alpha = 0.25)
+plt.xlabel('mumax')
+plt.ylabel('Rmag, ApDRmag')
+
+
+print ("MSE:", metrics.mean_squared_error(y_hat, y_test))
+print ("R^2:", metrics.r2_score(y_hat, y_test))
+
+#POlinomica simple
+
+
+#Regressió polinòmica amb Rmag
+x = dataset[["Rmag"]]
+y = dataset[["mumax"]]
+
+
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.33)
+
+x_train = x_train.values
+y_train = y_train.values
+
+x_test = x_test.values
+y_test = y_test.values
+
+x = x.values
+y = y.values
+
+
+poly_model = make_pipeline(PolynomialFeatures(degree=3), linear_model.LinearRegression())
+poly_model.fit(x_train.reshape(-1, 1), y_train.reshape(-1, 1))
+
+linear_model_1 = linear_model.LinearRegression()
+linear_model_1.fit(x_train, y_train)
+
+fig = plt.figure()
+ax = plt.axes()
+
+x_test.sort(axis=0)
+
+ax.set(xlabel='Rmag', ylabel='mumax', title='Rmag vs mumax')
+ax.scatter(x,y, alpha=0.5, cmap='viridis')
+ax.plot(x_test, linear_model_1.predict(x_test), color='green', label='linear')
+ax.plot(x_test, poly_model.predict(x_test), color='red', label='poly')
+
+
+print("MSE:", mean_squared_error(poly_model.predict(x_test),y_test))
+print("R^2:", r2_score(poly_model.predict(x_test), y_test))
+
+
+#Regressió polinòmica amb ApDRmag
+x = dataset[["ApDRmag"]]
+y = dataset[["mumax"]]
+
+
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.33)
+
+x_train = x_train.values
+y_train = y_train.values
+
+x_test = x_test.values
+y_test = y_test.values
+
+x = x.values
+y = y.values
+
+
+poly_model = make_pipeline(PolynomialFeatures(degree=5), linear_model.LinearRegression())
+poly_model.fit(x_train.reshape(-1, 1), y_train.reshape(-1, 1))
+
+linear_model_1 = linear_model.LinearRegression()
+linear_model_1.fit(x_train, y_train)
+
+fig = plt.figure()
+ax = plt.axes()
+
+x_test.sort(axis=0)
+
+ax.set(xlabel='ApDRmag', ylabel='mumax', title='ApDRmag vs mumax')
+ax.scatter(x,y, alpha=0.5, cmap='viridis')
+ax.plot(x_test, linear_model_1.predict(x_test), color='green', label='linear')
+ax.plot(x_test, poly_model.predict(x_test), color='red', label='poly')
+
+
+print("MSE:", mean_squared_error(poly_model.predict(x_test),y_test))
+print("R^2:", r2_score(poly_model.predict(x_test), y_test))
+
+
+
 ### APARTAT (A): EL DESCENS DEL GRADIENT
 class Regressor(object):
     def __init__(self, w0, w1, alpha, lamda): # si cambiamos w0 y w1 a menos hará más iteraciones
@@ -190,7 +328,6 @@ class Regressor(object):
             jw_prev = jw
 
 
-### No hará falta volverlas a dividir borrar luego ###
 ds = rel_Rmag_mumax
 x = ds[["Rmag"]].to_numpy()
 y = ds[["mumax"]].to_numpy()
@@ -252,4 +389,4 @@ pred = reg.predict(x_test)
 end = time.time()
 dif = end - start
 print("Score llibreria: ", mean_squared_error(pred, y_test), "Temps regressor llibreria: ", dif)
-"""
+
